@@ -11,22 +11,35 @@ ui <- fluidPage(
       ("Name (string), Start (d.m.y), End (d.m.y), Role (string), FTE (string) "),'<br/>','<br/>',
       ("Contact Ryssa Moffat for template (ryssa.moffat (at) gess.ethz.ch). "),'<br/>','<br/>')),
  
-    radioButtons(inputId = 'sep', label = 'Separator',
-                 choices = c(Comma=',',Semicolon=';'), selected = ','),
     fileInput('datafile', 'Choose CSV file',
               accept=c('csv', 'comma-separated-values','.csv')),
   plotOutput('plot1'),
   plotOutput('plot2')
 ))
 
+
+#### Functions
+detect_separator <- function(file) { # Check separators, adjust read if not comma
+  first_lines <- readLines(file, n = 5) # more robust than single line
+  commas <- sum(grepl(",", first_lines))
+  semicolons <- sum(grepl(";", first_lines))
+  
+  if (semicolons > commas) {
+    return(";")
+  } else {
+    return(",")
+  }
+}
+
+
 server <- function(input, output,session) {
  
-
 #### DF1
 dataframe<-reactive({
   if (is.null(input$datafile))
       return(NULL)
-  data<-read.csv(input$datafile$datapath, sep=input$sep)
+  sep <- detect_separator(input$datafile$datapath)
+  data <- read.csv(input$datafile$datapath, sep = sep)
   start_month <- min(dmy(data$Start))
   end_month <- max(dmy(data$End))
   months <- seq(from = start_month, 
@@ -90,7 +103,8 @@ output$plot1 <- renderPlot({
 dataframe2<-reactive({
   if (is.null(input$datafile))
     return(NULL)
-  data<-read.csv(input$datafile$datapath, sep=input$sep)
+  sep <- detect_separator(input$datafile$datapath)
+  data <- read.csv(input$datafile$datapath, sep = sep)
   start_month <- min(dmy(data$Start))
   end_month <- max(dmy(data$End))
   months <- seq(from = start_month,
